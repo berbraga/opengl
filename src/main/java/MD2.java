@@ -49,17 +49,19 @@ import java.util.*;
 public class MD2 {
   public static Model loadMD2(String filename) throws IOException {
     List/*<IFrame>*/ ifr = new ArrayList/*<IFrame>*/();
+    System.out.println("berbeds33333333333333333333");
     loadFrames(filename, ifr);
     return computeModel(ifr);
   }
 
 
 
-  public static Model loadMD2(InputStream in) throws IOException {
-    List/*<IFrame>*/ ifr = new ArrayList/*<IFrame>*/();
-    loadFrames(in, ifr);
-    return computeModel(ifr);
-  }
+//  public static Model loadMD2(InputStream in) throws IOException {
+//    List/*<IFrame>*/ ifr = new ArrayList/*<IFrame>*/();
+//    System.out.println("berbedssdfsdfsdfdf");
+//    loadFrames(in, ifr);
+//    return computeModel(ifr);
+//  }
 
   public static class FileHeader {
     public int ident;
@@ -163,7 +165,6 @@ public class MD2 {
     public Triangle[] tri;                   // [tri_num]
     public WingedEdge[] edge;                // [edge_num]
 
-
   }
 
 
@@ -204,6 +205,7 @@ public class MD2 {
     Model m = new Model();
     m.tri = ((IFrame) ifr.get(0)).tri;
     m.f = new Frame[ifr.size()];
+    System.out.println(m.f);
     for (int i = 0; i < ifr.size(); i++) {
       Frame f = new Frame();
       m.f[i] = f;

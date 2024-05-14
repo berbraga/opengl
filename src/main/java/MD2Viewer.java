@@ -23,6 +23,11 @@ public class MD2Viewer {
   private MD2.Model md2Model;
   private int textureId;
   private float rotationAngle = 0.0f;
+
+
+  private int currentFrame = 0;
+  private float animationTime = 0.0f;
+
   public void run() throws IOException {
     System.out.println("Hello LWJGL " + Version.getVersion() + "!");
     init();
@@ -77,6 +82,18 @@ public class MD2Viewer {
     glfwShowWindow(window);
   }
 
+  private void updateAnimation(float deltaTime) {
+    // Atualiza o tempo de animação e o frame atual baseado na velocidade da animação
+    animationTime += deltaTime;
+    float frameDuration = 0.1f; // Duração de cada frame em segundos
+    while (animationTime > frameDuration) {
+      animationTime -= frameDuration;
+      currentFrame = (currentFrame + 1) % md2Model.f.length;
+    }
+  }
+
+
+
   private int loadTexture(String filePath) throws IOException {
     BufferedImage image = ImageIO.read(new FileInputStream(filePath));
     int[] pixels = new int[image.getWidth() * image.getHeight()];
@@ -106,32 +123,39 @@ public class MD2Viewer {
   }
 
   private void loop() {
+    // Define o tempo inicial
+    long lastTime = System.nanoTime();
     while (!glfwWindowShouldClose(window)) {
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the frame/depth buffer
-      glEnable(GL_DEPTH_TEST);
-      glDepthFunc(GL_LEQUAL);
+      long now = System.nanoTime();
+      float deltaTime = (now - lastTime) / 1_000_000_000.0f;
+      lastTime = now;
 
-      // Set up the viewport and projection matrix
-      glViewport(0, 100, 300, 600);
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity();
-//      gluPerspective(45.0, (double) 800 / 600, 0.1, 100.0);
-
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-//      gluLookAt(0.0, 0.0, 10.0, // Camera position
-//        0.0, 0.0, 0.0,  // Look at point
-//        0.0, 1.0, 0.0); // Up vector
-      glRotatef(rotationAngle, -2.0f, 1.0f, 1.0f);
-      drawMD2Model();
-      glfwSwapBuffers(window);
-      glfwPollEvents();
-      // Atualizar o ângulo de rotação
-      rotationAngle += 0.5f;  // Ajuste este valor conforme necessário para controlar a velocidade de rotação
-      if (rotationAngle > 360.0f) {
-        rotationAngle -= 360.0f;  // Mantém o ângulo dentro de um intervalo de 0 a 360 graus
-      }
+      updateAnimation(deltaTime); // Atualiza a animação baseada no tempo
+      render(); // Processo de renderização
     }
+  }
+
+
+  // Altere a função principal ou crie um método render() adequado
+  private void render() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the frame/depth buffer
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+
+    // Configurações de viewport e matriz aqui
+    glViewport(0, 0, 300, 600);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glRotatef(270f, 1, 0, 0);
+//    glRotatef(120f, 0, 1, 0);
+    glRotatef(120f, 0, 0, 1);
+    drawMD2Model(); // Desenha o modelo usando a frame atual
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+
+
   }
 
   private void drawMD2Model() {
@@ -143,11 +167,13 @@ public class MD2Viewer {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glBegin(GL_TRIANGLES);
+
+    MD2.Frame frame = md2Model.f[currentFrame];
     for (int i = 0; i < md2Model.tri.length; i++) {
       MD2.Triangle tri = md2Model.tri[i];
       for (int j = 0; j < 3; j++) {
         MD2.Vertex v = tri.v[j];
-        MD2.PositionNormal pn = md2Model.f[0].pn[v.pn_index];
+        MD2.PositionNormal pn = frame.pn[v.pn_index];
         glTexCoord2f(v.tc.s, v.tc.t);
         glVertex3f(pn.x, pn.y, pn.z);
       }
@@ -155,7 +181,6 @@ public class MD2Viewer {
     glEnd();
     glDisable(GL_TEXTURE_2D);
   }
-
   public static void main(String[] args) {
     try {
       new MD2Viewer().run();
