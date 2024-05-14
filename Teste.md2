@@ -1,0 +1,42 @@
+Header:
+magic: 21161
+version: 8
+skinWidth: 256
+skinHeight: 256
+frameSize: 400
+numSkins: 1
+numVertices: 4
+numTexCoords: 4
+numTriangles: 2
+numGLCommands: 0
+numFrames: 1
+offsetSkins: 68
+offsetTexCoords: 132
+offsetTriangles: 196
+offsetFrames: 260
+offsetGLCommands: 660
+offsetEnd: 680
+
+Skins:
+"texturaGato.jpeg"
+
+TexCoords:
+{0, 0}
+{1, 0}
+{1, 1}
+{0, 1}
+
+Triangles:
+{0, 1, 2}  // Triângulo 1
+{0, 2, 3}  // Triângulo 2
+
+Frames:
+Frame 1:
+scale: {1, 1, 1}
+translate: {0, 0, 0}
+name: "frame1"
+vertices:
+{0, 0, 0}
+{1, 0, 0}
+{1, 1, 0}
+{0, 1, 0}
