@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import util.TextureLoader;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -23,44 +22,38 @@ public class MD2Viewer {
   private long window;
   private MD2.Model md2Model;
   private int textureId;
-
-
+  private float rotationAngle = 0.0f;
   public void run() throws IOException {
     System.out.println("Hello LWJGL " + Version.getVersion() + "!");
-
     init();
-//    md2Model = MD2.loadMD2("knight.md2"); // Supõe-se que esta função está corretamente definida na classe MD2.
-//    System.out.println("arquivo MD2: " + md2Model.toString());
-//    System.out.println("arquivo MD2 rodando");
     loop();
-//    BufferedImage imggato = TextureLoader.loadImage("texturaGato.jpeg");
-//    BufferedImage gatorgba = new BufferedImage(imggato.getWidth(), imggato.getHeight(), BufferedImage.TYPE_INT_ARGB);
-//    gatorgba.getGraphics().drawImage(imggato, 0, 0, null);
-//    textureId = TextureLoader.loadTexture(imggato);
 
-//    textureId = loadTexture("knight.bmp");
-
+    // Clean up
     glfwFreeCallbacks(window);
     glfwDestroyWindow(window);
     glfwTerminate();
     glfwSetErrorCallback(null).free();
   }
+
   private void init() throws IOException {
     GLFWErrorCallback.createPrint(System.err).set();
-    if (!glfwInit())
+    if (!glfwInit()) {
       throw new IllegalStateException("Unable to initialize GLFW");
+    }
 
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window = glfwCreateWindow(800, 600, "MD2 Model Viewer", NULL, NULL);
-    if (window == NULL)
+    if (window == NULL) {
       throw new RuntimeException("Failed to create the GLFW window");
+    }
 
     glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-      if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+      if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
         glfwSetWindowShouldClose(window, true);
+      }
     });
 
     try (MemoryStack stack = stackPush()) {
@@ -73,14 +66,17 @@ public class MD2Viewer {
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable v-sync
+    GL.createCapabilities();
 
-    // Carrega a textura
+    // Load MD2 model
+    md2Model = MD2.loadMD2("knight.md2");
 
-    md2Model = MD2.loadMD2("knight.md2"); // Supõe-se que esta função está corretamente definida na classe MD2.
-    System.out.println("arquivo MD2: " + md2Model.toString());
-    System.out.println("arquivo MD2 rodando");
+    // Load texture
+    textureId = loadTexture("knight.bmp");
+
     glfwShowWindow(window);
   }
+
   private int loadTexture(String filePath) throws IOException {
     BufferedImage image = ImageIO.read(new FileInputStream(filePath));
     int[] pixels = new int[image.getWidth() * image.getHeight()];
@@ -90,25 +86,18 @@ public class MD2Viewer {
     for (int y = 0; y < image.getHeight(); y++) {
       for (int x = 0; x < image.getWidth(); x++) {
         int pixel = pixels[y * image.getWidth() + x];
-        buffer.put((byte) ((pixel >> 16) & 0xFF));
-        buffer.put((byte) ((pixel >> 8) & 0xFF));
-        buffer.put((byte) (pixel & 0xFF));
-        buffer.put((byte) ((pixel >> 24) & 0xFF));
+        buffer.put((byte) ((pixel >> 16) & 0xFF)); // Red
+        buffer.put((byte) ((pixel >> 8) & 0xFF));  // Green
+        buffer.put((byte) (pixel & 0xFF));         // Blue
+        buffer.put((byte) ((pixel >> 24) & 0xFF)); // Alpha
       }
     }
-
     buffer.flip();
 
-
     int textureID = glGenTextures();
-    if (textureID == 0) {
-      throw new RuntimeException("Failed to generate a new OpenGL texture object.");
-    }
-    System.out.println("fgasdlfjashdfjklhsadfa");
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
@@ -116,34 +105,32 @@ public class MD2Viewer {
     return textureID;
   }
 
-  private void loop() throws IOException {
-    GL.createCapabilities();
-    glClearColor(1f, 1f, 1f, 1f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    md2Model = MD2.loadMD2("knight.md2"); // Supõe-se que esta função está corretamente definida na classe MD2.
-    System.out.println("arquivo MD2: " + md2Model.toString());
-    System.out.println("arquivo MD2 rodando");
-    BufferedImage imggato = TextureLoader.loadImage("texturaGato.jpeg");
-    glGenTextures();
-    BufferedImage gatorgba = new BufferedImage(imggato.getWidth(), imggato.getHeight(), BufferedImage.TYPE_INT_ARGB);
-    gatorgba.getGraphics().drawImage(imggato, 0, 0, null);
-    textureId = TextureLoader.loadTexture(imggato);
-
+  private void loop() {
     while (!glfwWindowShouldClose(window)) {
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the frame/depth buffer
+      glEnable(GL_DEPTH_TEST);
+      glDepthFunc(GL_LEQUAL);
+
+      // Set up the viewport and projection matrix
+      glViewport(0, 100, 300, 600);
       glMatrixMode(GL_PROJECTION);
       glLoadIdentity();
+//      gluPerspective(45.0, (double) 800 / 600, 0.1, 100.0);
 
-      glViewport(0,0,0,0);
       glMatrixMode(GL_MODELVIEW);
-      glTranslatef(0.0f, 0.0f, -5.0f);
-      glRotatef(45.0f, 1.0f, 0.0f, 0.0f);
-      glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+      glLoadIdentity();
+//      gluLookAt(0.0, 0.0, 10.0, // Camera position
+//        0.0, 0.0, 0.0,  // Look at point
+//        0.0, 1.0, 0.0); // Up vector
+      glRotatef(rotationAngle, -2.0f, 1.0f, 1.0f);
       drawMD2Model();
       glfwSwapBuffers(window);
       glfwPollEvents();
+      // Atualizar o ângulo de rotação
+      rotationAngle += 0.5f;  // Ajuste este valor conforme necessário para controlar a velocidade de rotação
+      if (rotationAngle > 360.0f) {
+        rotationAngle -= 360.0f;  // Mantém o ângulo dentro de um intervalo de 0 a 360 graus
+      }
     }
   }
 
@@ -154,19 +141,21 @@ public class MD2Viewer {
     }
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 1);
+    glBindTexture(GL_TEXTURE_2D, textureId);
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < md2Model.tri.length; i++) {
       MD2.Triangle tri = md2Model.tri[i];
       for (int j = 0; j < 3; j++) {
         MD2.Vertex v = tri.v[j];
         MD2.PositionNormal pn = md2Model.f[0].pn[v.pn_index];
-        glTexCoord2f(v.tc.s, v.tc.t);  // Set texture coordinates
+        glTexCoord2f(v.tc.s, v.tc.t);
         glVertex3f(pn.x, pn.y, pn.z);
       }
     }
     glEnd();
+    glDisable(GL_TEXTURE_2D);
   }
+
   public static void main(String[] args) {
     try {
       new MD2Viewer().run();
@@ -175,4 +164,3 @@ public class MD2Viewer {
     }
   }
 }
-
